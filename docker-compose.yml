@@ -1,0 +1,72 @@
+x-app: &app
+  build:
+    context: .
+    target: runtime
+  environment:
+    DATABASE_URL: postgres://reminders:reminders@db:5432/reminders
+    CELERY_BROKER_URL: redis://redis:6379/0
+    DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,web
+    # Local demo values. A real deployment passes its own secret and no demo admin.
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-compose-only-secret}
+    DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-admin}
+    DIGEST_HOUR: ${DIGEST_HOUR:-9}
+    DIGEST_MINUTE: ${DIGEST_MINUTE:-0}
+
+x-after-migrate: &after-migrate
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    redis:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: reminders
+      POSTGRES_PASSWORD: reminders
+      POSTGRES_DB: reminders
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reminders -d reminders"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  redis:
+    image: redis:7.4-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  migrate:
+    <<: *app
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py seed_demo"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: [*app, *after-migrate]
+    ports:
+      - "8000:8000"
+
+  celery:
+    <<: [*app, *after-migrate]
+    command: ["celery", "-A", "config", "worker", "--loglevel", "info", "--concurrency", "2"]
+
+  beat:
+    <<: [*app, *after-migrate]
+    command: ["celery", "-A", "config", "beat", "--loglevel", "info", "--schedule", "/tmp/celerybeat-schedule"]
+
+  tests:
+    profiles: ["test"]
+    build:
+      context: .
+      target: test
+    environment:
+      DATABASE_URL: postgres://reminders:reminders@db:5432/reminders
+    depends_on:
+      db:
+        condition: service_healthy

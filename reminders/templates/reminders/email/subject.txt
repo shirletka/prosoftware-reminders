@@ -1,0 +1,1 @@
+{% load reminders_extras %}Сроки на {{ today|date:"d.m" }}: {{ tasks|length }} {{ tasks|length|ru_plural:"задача,задачи,задач" }}{% if groups.overdue %}, просрочено {{ groups.overdue|length }}{% endif %}

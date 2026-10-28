@@ -1,0 +1,15 @@
+{% load reminders_extras %}{% autoescape off %}Здравствуйте!
+
+Вот что нужно сделать в ближайшие {{ days_ahead }} {{ days_ahead|ru_plural:"день,дня,дней" }}.
+{% if groups.overdue %}
+Просрочено:
+{% for t in groups.overdue %}  - {{ t.title }} ({{ t.company }}) — срок был {{ t.due_on|date:"d.m.Y" }}, {{ t|days_left_from:today|due_label }}
+{% endfor %}{% endif %}{% if groups.today %}
+Сегодня, {{ today|date:"d.m.Y" }}:
+{% for t in groups.today %}  - {{ t.title }} ({{ t.company }})
+{% endfor %}{% endif %}{% if groups.soon %}
+Скоро:
+{% for t in groups.soon %}  - {{ t.title }} ({{ t.company }}) — {{ t.due_on|date:"d.m.Y" }}, {{ t|days_left_from:today|due_label }}
+{% endfor %}{% endif %}
+Когда сделаете, отметьте задачу выполненной, и следующий срок пересчитается сам.
+{% endautoescape %}

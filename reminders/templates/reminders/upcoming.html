@@ -1,0 +1,64 @@
+{% load static reminders_extras %}<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ближайшие сроки</title>
+  <script src="{% static 'reminders/htmx.min.js' %}"></script>
+  <style>
+    :root { --bg: #f6f7f9; --card: #fff; --text: #1d2433; --muted: #667085; --line: #e4e7ec;
+            --red: #d92d20; --amber: #b54708; --green: #067647; --accent: #155eef; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+    header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: 24px; margin: 0; }
+    header a { color: var(--accent); text-decoration: none; font-size: 14px; }
+    form.filters { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 8px; }
+    select { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+    section { margin-top: 20px; }
+    h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+    h2 .count { display: inline-block; min-width: 22px; padding: 0 6px; border-radius: 11px; background: var(--line); color: var(--text); text-align: center; }
+    section.overdue h2 .count { background: var(--red); color: #fff; }
+    ul { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+    li { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+    li:first-child { border-top: 0; }
+    .what { flex: 1; min-width: 0; }
+    .what b { display: block; }
+    .what small { color: var(--muted); }
+    .when { font-size: 14px; white-space: nowrap; }
+    .overdue .when { color: var(--red); }
+    .today .when { color: var(--amber); }
+    button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--green); background: #fff; color: var(--green); cursor: pointer; }
+    button:hover { background: var(--green); color: #fff; }
+    .htmx-request button { opacity: .5; }
+    .flash { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; background: #ecfdf3; color: var(--green); }
+    .empty { margin-top: 32px; padding: 32px; text-align: center; color: var(--muted); background: var(--card); border: 1px dashed var(--line); border-radius: 12px; }
+    @media (max-width: 560px) {
+      li { flex-wrap: wrap; }
+      .what { flex-basis: 100%; }
+      button { margin-left: auto; }
+    }
+  </style>
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<main>
+  <header>
+    <h1>Ближайшие сроки</h1>
+    <a href="{% url 'admin:reminders_task_changelist' %}">Все задачи в админке →</a>
+  </header>
+
+  <form class="filters" id="filters" hx-get="{% url 'upcoming' %}" hx-target="#board" hx-trigger="change" hx-push-url="true">
+    <select name="company" aria-label="Компания">
+      <option value="">Все компании</option>
+      {% for c in companies %}<option value="{{ c.pk }}" {% if company == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    <select name="days" aria-label="Горизонт">
+      {% for d in day_options %}<option value="{{ d }}" {% if d == days %}selected{% endif %}>{% if d == 0 %}только сегодня и просрочка{% else %}на {{ d }} {{ d|ru_plural:"день,дня,дней" }} вперёд{% endif %}</option>{% endfor %}
+    </select>
+  </form>
+
+  <div id="board">{% include "reminders/_board.html" %}</div>
+</main>
+</body>
+</html>

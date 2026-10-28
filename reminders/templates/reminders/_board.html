@@ -1,0 +1,16 @@
+{% load reminders_extras %}{% if done %}<p class="flash" role="status">«{{ done.title }}» выполнена. Следующий срок {{ done.due_on|date:"d.m.Y" }}.</p>{% endif %}
+{% for key, label, items in sections %}{% if items %}
+<section class="{{ key }}">
+  <h2>{{ label }} <span class="count">{{ items|length }}</span></h2>
+  <ul>
+    {% for t in items %}
+    <li id="task-{{ t.pk }}">
+      <div class="what"><b>{{ t.title }}</b><small>{{ t.company }} · {{ t.assignee_email }} · раз в {{ t.cycle_days }} {{ t.cycle_days|ru_plural:"день,дня,дней" }}</small></div>
+      <span class="when">{{ t.due_on|date:"d.m" }}, {{ t|days_left_from:today|due_label }}</span>
+      <button hx-post="{% url 'task-done' t.pk %}" hx-target="#board" hx-include="#filters" aria-label="Отметить «{{ t.title }}» выполненной">Выполнено</button>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}{% endfor %}
+{% if not total %}<p class="empty">На {% if days %}ближайшие {{ days }} {{ days|ru_plural:"день,дня,дней" }}{% else %}сегодня{% endif %} ничего не горит.</p>{% endif %}
